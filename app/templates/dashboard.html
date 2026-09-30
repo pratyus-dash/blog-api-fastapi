@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Dashboard - My Blog
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<nav>
+
+    <div class="container">
+
+        <a href="/" class="logo">
+            My Blog
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="/">
+                Home
+            </a>
+
+
+            <button id="logoutButton">
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<main class="container">
+
+
+    <h1>
+        Dashboard
+    </h1>
+
+
+    <p id="userInfo">
+        Loading user...
+    </p>
+
+
+    <!-- CREATE POST -->
+
+    <div class="form-container">
+
+        <h2>
+            Create New Post
+        </h2>
+
+
+        <form id="createPostForm">
+
+
+            <label for="title">
+                Title
+            </label>
+
+
+            <input
+                type="text"
+                id="title"
+                required
+            >
+
+
+            <label for="content">
+                Content
+            </label>
+
+
+            <textarea
+                id="content"
+                rows="8"
+                required
+            ></textarea>
+
+
+            <label for="category">
+                Category
+            </label>
+
+
+            <select id="category">
+
+                <option value="">
+                    No Category
+                </option>
+
+            </select>
+
+
+            <label>
+                Tags
+            </label>
+
+
+            <div id="tagsContainer">
+
+                Loading tags...
+
+            </div>
+
+
+            <label>
+
+                <input
+                    type="checkbox"
+                    id="published"
+                    checked
+                >
+
+                Publish immediately
+
+            </label>
+
+
+            <button type="submit">
+                Create Post
+            </button>
+
+
+        </form>
+
+
+        <p id="createMessage"></p>
+
+    </div>
+
+
+    <!-- MY POSTS -->
+
+    <h2>
+        My Posts
+    </h2>
+
+
+    <div id="myPosts">
+
+        Loading...
+
+    </div>
+
+
+</main>
+
+
+<script>
+
+const token =
+    localStorage.getItem(
+        "access_token"
+    );
+
+
+if (!token) {
+
+    window.location.href =
+        "/login";
+
+}
+
+
+async function loadUser() {
+
+    const response =
+        await fetch(
+            "/users/me",
+            {
+                headers: {
+                    "Authorization":
+                        "Bearer " + token
+                }
+            }
+        );
+
+
+    if (!response.ok) {
+
+        localStorage.removeItem(
+            "access_token"
+        );
+
+        window.location.href =
+            "/login";
+
+        return;
+
+    }
+
+
+    const user =
+        await response.json();
+
+
+    document.getElementById(
+        "userInfo"
+    ).textContent =
+        "Logged in as: " +
+        user.username;
+
+}
+
+
+async function loadCategories() {
+
+    const response =
+        await fetch(
+            "/categories/"
+        );
+
+
+    const categories =
+        await response.json();
+
+
+    const select =
+        document.getElementById(
+            "category"
+        );
+
+
+    categories.forEach(
+        function(category) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                category.id;
+
+
+            option.textContent =
+                category.name;
+
+
+            select.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+async function loadTags() {
+
+    const response =
+        await fetch(
+            "/tags/"
+        );
+
+
+    const tags =
+        await response.json();
+
+
+    const container =
+        document.getElementById(
+            "tagsContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (tags.length === 0) {
+
+        container.textContent =
+            "No tags available.";
+
+        return;
+
+    }
+
+
+    tags.forEach(
+        function(tag) {
+
+            container.innerHTML += `
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        value="${tag.id}"
+                        class="tag-checkbox"
+                    >
+
+                    ${tag.name}
+
+                </label>
+
+            `;
+
+        }
+    );
+
+}
+
+
+document.getElementById(
+    "createPostForm"
+).addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        const title =
+            document.getElementById(
+                "title"
+            ).value;
+
+
+        const content =
+            document.getElementById(
+                "content"
+            ).value;
+
+
+        const category =
+            document.getElementById(
+                "category"
+            ).value;
+
+
+        const published =
+            document.getElementById(
+                "published"
+            ).checked;
+
+
+        const checkedTags =
+            document.querySelectorAll(
+                ".tag-checkbox:checked"
+            );
+
+
+        const tagIds =
+            Array.from(
+                checkedTags
+            ).map(
+                checkbox =>
+                    Number(
+                        checkbox.value
+                    )
+            );
+
+
+        const postData = {
+
+            title: title,
+
+            content: content,
+
+            published: published,
+
+            category_id:
+                category
+                    ? Number(category)
+                    : null,
+
+            tag_ids: tagIds
+
+        };
+
+
+        const response =
+            await fetch(
+                "/posts/",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Authorization":
+                            "Bearer " + token
+
+                    },
+
+                    body:
+                        JSON.stringify(
+                            postData
+                        )
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            document.getElementById(
+                "createMessage"
+            ).textContent =
+                data.detail ||
+                "Could not create post.";
+
+            return;
+
+        }
+
+
+        document.getElementById(
+            "createMessage"
+        ).textContent =
+            "Post created successfully!";
+
+
+        document.getElementById(
+            "createPostForm"
+        ).reset();
+
+
+        loadMyPosts();
+
+    }
+);
+
+
+async function loadMyPosts() {
+
+    const response =
+        await fetch(
+            "/posts/my",
+            {
+                headers: {
+                    "Authorization":
+                        "Bearer " + token
+                }
+            }
+        );
+
+
+    if (!response.ok) {
+
+        document.getElementById(
+            "myPosts"
+        ).textContent =
+            "Could not load your posts.";
+
+        return;
+
+    }
+
+
+    const posts =
+        await response.json();
+
+
+    const container =
+        document.getElementById(
+            "myPosts"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (posts.length === 0) {
+
+        container.innerHTML =
+            "<p>You haven't created any posts yet.</p>";
+
+        return;
+
+    }
+
+
+    posts.forEach(
+        function(post) {
+
+            container.innerHTML += `
+
+                <div class="card">
+
+                    <h3>
+                        ${post.title}
+                    </h3>
+
+                    <p>
+                        ${post.content}
+                    </p>
+
+                    <p>
+                        Status:
+                        ${
+                            post.published
+                                ? "Published"
+                                : "Draft"
+                        }
+                    </p>
+
+
+                    <a
+                        href="/post/${post.id}/edit"
+                        class="button"
+                    >
+                        Edit
+                    </a>
+
+
+                    <button
+                        onclick="deletePost(${post.id})"
+                    >
+                        Delete
+                    </button>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+}
+
+
+async function deletePost(postId) {
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to delete this post?"
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    const response =
+        await fetch(
+            `/posts/${postId}`,
+            {
+
+                method: "DELETE",
+
+                headers: {
+
+                    "Authorization":
+                        "Bearer " + token
+
+                }
+
+            }
+        );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
+
+        alert(
+            data.detail ||
+            "Could not delete post."
+        );
+
+        return;
+
+    }
+
+
+    alert(
+        "Post deleted successfully."
+    );
+
+
+    loadMyPosts();
+
+}
+
+
+document.getElementById(
+    "logoutButton"
+).addEventListener(
+    "click",
+    function() {
+
+        localStorage.removeItem(
+            "access_token"
+        );
+
+        window.location.href =
+            "/";
+
+    }
+);
+
+
+loadUser();
+loadCategories();
+loadTags();
+loadMyPosts();
+
+</script>
+
+
+</body>
+
+</html>

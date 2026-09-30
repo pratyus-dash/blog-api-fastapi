@@ -1,0 +1,175 @@
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    color: #222;
+}
+
+
+.container {
+    width: 90%;
+    max-width: 1000px;
+    margin: auto;
+}
+
+
+nav {
+    background: #222;
+    padding: 15px 0;
+}
+
+
+nav .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.logo {
+    color: white;
+    text-decoration: none;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+}
+
+
+main {
+    padding: 40px 0;
+}
+
+
+.card,
+.form-container,
+.post,
+.search-box {
+    background: white;
+    padding: 25px;
+    margin-top: 25px;
+    border-radius: 8px;
+}
+
+
+.button,
+button {
+    display: inline-block;
+    background: #222;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+.button:hover,
+button:hover {
+    opacity: 0.85;
+}
+
+
+.form-container {
+    max-width: 600px;
+}
+
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+
+label {
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+
+input,
+textarea,
+select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+
+textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+
+select {
+    margin-bottom: 10px;
+}
+
+
+form button {
+    margin-top: 20px;
+}
+
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+
+.search-box input {
+    flex: 1;
+    min-width: 200px;
+}
+
+
+.search-box select {
+    min-width: 150px;
+}
+
+
+.comment {
+    border-bottom: 1px solid #ddd;
+    padding: 15px 0;
+}
+
+
+.comment:last-child {
+    border-bottom: none;
+}
+
+
+#tagsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+
+#tagsContainer label {
+    margin: 0;
+}
+
+
+#tagsContainer input {
+    margin-right: 8px;
+}

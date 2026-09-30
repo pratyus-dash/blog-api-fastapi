@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {{ post.title }} - My Blog
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<nav>
+
+    <div class="container">
+
+        <a href="/" class="logo">
+            My Blog
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="/">
+                Home
+            </a>
+
+            <a href="/dashboard">
+                Dashboard
+            </a>
+
+            <a
+                href="/login"
+                id="loginLink"
+            >
+                Login
+            </a>
+
+            <a
+                href="/register"
+                id="registerLink"
+            >
+                Register
+            </a>
+
+            <button
+                id="logoutButton"
+                style="display: none;"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<main class="container">
+
+
+    <!-- POST -->
+
+    <article class="post">
+
+        <h1>
+            {{ post.title }}
+        </h1>
+
+
+        <p>
+            {{ post.content }}
+        </p>
+
+
+        <p>
+            Author:
+            {{ post.author.username }}
+        </p>
+
+
+        {% if post.category %}
+
+            <p>
+                Category:
+                {{ post.category.name }}
+            </p>
+
+        {% endif %}
+
+
+        <p>
+            Published:
+            {{ post.published }}
+        </p>
+
+    </article>
+
+
+    <!-- COMMENTS -->
+
+    <div class="card">
+
+        <h2>
+            Comments
+        </h2>
+
+
+        <div id="commentsContainer">
+
+            Loading comments...
+
+        </div>
+
+    </div>
+
+
+    <!-- ADD COMMENT -->
+
+    <div class="form-container">
+
+        <h2>
+            Add Comment
+        </h2>
+
+
+        <form id="commentForm">
+
+            <label for="comment">
+                Comment
+            </label>
+
+
+            <textarea
+                id="comment"
+                rows="5"
+                required
+            ></textarea>
+
+
+            <button type="submit">
+                Add Comment
+            </button>
+
+        </form>
+
+
+        <p id="commentMessage"></p>
+
+    </div>
+
+
+    <p>
+
+        <a href="/">
+            ← Back to Home
+        </a>
+
+    </p>
+
+
+</main>
+
+
+<script>
+
+
+// Get post ID from Jinja
+
+const postId =
+    {{ post.id }};
+
+
+// Get JWT token
+
+const token =
+    localStorage.getItem(
+        "access_token"
+    );
+
+
+// Show correct navigation
+
+if (token) {
+
+    document.getElementById(
+        "loginLink"
+    ).style.display = "none";
+
+
+    document.getElementById(
+        "registerLink"
+    ).style.display = "none";
+
+
+    document.getElementById(
+        "logoutButton"
+    ).style.display = "inline";
+
+}
+
+
+// Logout
+
+document.getElementById(
+    "logoutButton"
+).addEventListener(
+    "click",
+    function() {
+
+        localStorage.removeItem(
+            "access_token"
+        );
+
+        window.location.href = "/";
+
+    }
+);
+
+
+// Load comments
+
+async function loadComments() {
+
+    try {
+
+        const response =
+            await fetch(
+                `/comments/post/${postId}`
+            );
+
+
+        if (!response.ok) {
+
+            document.getElementById(
+                "commentsContainer"
+            ).textContent =
+                "Could not load comments.";
+
+            return;
+
+        }
+
+
+        const comments =
+            await response.json();
+
+
+        const container =
+            document.getElementById(
+                "commentsContainer"
+            );
+
+
+        container.innerHTML = "";
+
+
+        if (comments.length === 0) {
+
+            container.innerHTML =
+                "<p>No comments yet.</p>";
+
+            return;
+
+        }
+
+
+        comments.forEach(
+            function(comment) {
+
+                container.innerHTML += `
+
+                    <div class="comment">
+
+                        <p>
+                            ${comment.content}
+                        </p>
+
+                        <small>
+                            User ID:
+                            ${comment.author_id}
+                        </small>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+
+    } catch (error) {
+
+        document.getElementById(
+            "commentsContainer"
+        ).textContent =
+            "Could not load comments.";
+
+    }
+
+}
+
+
+// Submit comment
+
+document.getElementById(
+    "commentForm"
+).addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        if (!token) {
+
+            document.getElementById(
+                "commentMessage"
+            ).textContent =
+                "Please login before commenting.";
+
+            return;
+
+        }
+
+
+        const content =
+            document.getElementById(
+                "comment"
+            ).value;
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `/comments/${postId}`,
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                "Bearer " + token
+
+                        },
+
+                        body: JSON.stringify({
+                            content: content
+                        })
+
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                document.getElementById(
+                    "commentMessage"
+                ).textContent =
+                    data.detail ||
+                    "Could not add comment.";
+
+                return;
+
+            }
+
+
+            document.getElementById(
+                "comment"
+            ).value = "";
+
+
+            document.getElementById(
+                "commentMessage"
+            ).textContent =
+                "Comment added successfully!";
+
+
+            loadComments();
+
+
+        } catch (error) {
+
+            document.getElementById(
+                "commentMessage"
+            ).textContent =
+                "Something went wrong.";
+
+        }
+
+    }
+);
+
+
+// Load comments when page opens
+
+loadComments();
+
+
+</script>
+
+
+</body>
+
+</html>

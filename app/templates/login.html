@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Login - My Blog</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <nav>
+
+        <div class="container">
+
+            <a href="/" class="logo">
+                My Blog
+            </a>
+
+            <div class="nav-links">
+
+                <a href="/">
+                    Home
+                </a>
+
+                <a href="/login">
+                    Login
+                </a>
+
+                <a href="/register">
+                    Register
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+
+    <main class="container">
+
+        <div class="form-container">
+
+            <h1>Login</h1>
+
+            <form id="loginForm">
+
+                <label for="username">
+                    Username
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                >
+
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                >
+
+
+                <button type="submit">
+                    Login
+                </button>
+
+            </form>
+
+
+            <p id="message"></p>
+
+        </div>
+
+    </main>
+
+
+    <script>
+
+        const loginForm = document.getElementById("loginForm");
+        const message = document.getElementById("message");
+
+
+        loginForm.addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+
+            const username =
+                document.getElementById("username").value;
+
+            const password =
+                document.getElementById("password").value;
+
+
+            const formData = new URLSearchParams();
+
+            formData.append("username", username);
+            formData.append("password", password);
+
+
+            try {
+
+                const response = await fetch("/auth/token", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: formData
+
+                });
+
+
+                const data = await response.json();
+
+
+                if (!response.ok) {
+
+                    message.textContent =
+                        data.detail || "Login failed.";
+
+                    return;
+                }
+
+
+                localStorage.setItem(
+                    "access_token",
+                    data.access_token
+                );
+
+
+                message.textContent =
+                    "Login successful!";
+
+
+                setTimeout(function() {
+
+                    window.location.href = "/";
+
+                }, 1000);
+
+
+            } catch (error) {
+
+                message.textContent =
+                    "Something went wrong.";
+
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>

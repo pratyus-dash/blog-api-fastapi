@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Edit Post - My Blog
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<nav>
+
+    <div class="container">
+
+        <a href="/" class="logo">
+            My Blog
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="/">
+                Home
+            </a>
+
+            <a href="/dashboard">
+                Dashboard
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<main class="container">
+
+
+    <div class="form-container">
+
+
+        <h1>
+            Edit Post
+        </h1>
+
+
+        <form id="editForm">
+
+
+            <label for="title">
+                Title
+            </label>
+
+
+            <input
+                type="text"
+                id="title"
+                required
+            >
+
+
+            <label for="content">
+                Content
+            </label>
+
+
+            <textarea
+                id="content"
+                rows="10"
+                required
+            ></textarea>
+
+
+            <label for="category">
+                Category
+            </label>
+
+
+            <select id="category">
+
+                <option value="">
+                    No Category
+                </option>
+
+            </select>
+
+
+            <label>
+                Tags
+            </label>
+
+
+            <div id="tagsContainer">
+
+                Loading tags...
+
+            </div>
+
+
+            <label>
+
+                <input
+                    type="checkbox"
+                    id="published"
+                >
+
+                Published
+
+            </label>
+
+
+            <button type="submit">
+                Update Post
+            </button>
+
+
+        </form>
+
+
+        <p id="message"></p>
+
+
+    </div>
+
+
+</main>
+
+
+<script>
+
+const postId =
+    {{ post_id }};
+
+
+const token =
+    localStorage.getItem(
+        "access_token"
+    );
+
+
+if (!token) {
+
+    window.location.href =
+        "/login";
+
+}
+
+
+async function loadCategories() {
+
+    const response =
+        await fetch(
+            "/categories/"
+        );
+
+
+    const categories =
+        await response.json();
+
+
+    const select =
+        document.getElementById(
+            "category"
+        );
+
+
+    categories.forEach(
+        function(category) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                category.id;
+
+
+            option.textContent =
+                category.name;
+
+
+            select.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+async function loadTags() {
+
+    const response =
+        await fetch(
+            "/tags/"
+        );
+
+
+    const tags =
+        await response.json();
+
+
+    const container =
+        document.getElementById(
+            "tagsContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    tags.forEach(
+        function(tag) {
+
+            container.innerHTML += `
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        value="${tag.id}"
+                        class="tag-checkbox"
+                    >
+
+                    ${tag.name}
+
+                </label>
+
+            `;
+
+        }
+    );
+
+}
+
+
+async function loadPost() {
+
+    const response =
+        await fetch(
+            `/posts/my/${postId}`,
+            {
+                headers: {
+                    "Authorization":
+                        "Bearer " + token
+                }
+            }
+        );
+
+
+    if (!response.ok) {
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            "Post not found or you are not allowed to edit it.";
+
+        return;
+
+    }
+
+
+    const post =
+        await response.json();
+
+
+    document.getElementById(
+        "title"
+    ).value =
+        post.title;
+
+
+    document.getElementById(
+        "content"
+    ).value =
+        post.content;
+
+
+    document.getElementById(
+        "published"
+    ).checked =
+        post.published;
+
+
+    if (post.category_id) {
+
+        document.getElementById(
+            "category"
+        ).value =
+            post.category_id;
+
+    }
+
+}
+
+
+document.getElementById(
+    "editForm"
+).addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        const categoryValue =
+            document.getElementById(
+                "category"
+            ).value;
+
+
+        const checkedTags =
+            document.querySelectorAll(
+                ".tag-checkbox:checked"
+            );
+
+
+        const tagIds =
+            Array.from(
+                checkedTags
+            ).map(
+                checkbox =>
+                    Number(
+                        checkbox.value
+                    )
+            );
+
+
+        const postData = {
+
+            title:
+                document.getElementById(
+                    "title"
+                ).value,
+
+            content:
+                document.getElementById(
+                    "content"
+                ).value,
+
+            published:
+                document.getElementById(
+                    "published"
+                ).checked,
+
+            category_id:
+                categoryValue
+                    ? Number(categoryValue)
+                    : null,
+
+            tag_ids: tagIds
+
+        };
+
+
+        const response =
+            await fetch(
+                `/posts/${postId}`,
+                {
+
+                    method: "PUT",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Authorization":
+                            "Bearer " + token
+
+                    },
+
+                    body:
+                        JSON.stringify(
+                            postData
+                        )
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            document.getElementById(
+                "message"
+            ).textContent =
+                data.detail ||
+                "Could not update post.";
+
+            return;
+
+        }
+
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            "Post updated successfully!";
+
+
+        setTimeout(
+            function() {
+
+                window.location.href =
+                    "/dashboard";
+
+            },
+            1000
+        );
+
+    }
+);
+
+
+async function initializePage() {
+
+    await loadCategories();
+
+    await loadTags();
+
+    await loadPost();
+
+}
+
+
+initializePage();
+
+</script>
+
+
+</body>
+
+</html>
