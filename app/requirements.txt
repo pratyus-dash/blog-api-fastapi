@@ -7,7 +7,7 @@ python-multipart
 jinja2
 email-validator
 python-dotenv
-psycopg2-binary
+psycopg[binary]
 alembic
 pytest
 httpx

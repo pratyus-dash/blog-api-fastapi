@@ -1,13 +1,38 @@
-def test_register_user(client):
-
-    response = client.post(
+def register_user(
+    client,
+    username="testuser",
+    email="testuser@example.com",
+    password="password123"
+):
+    return client.post(
         "/auth/register",
         json={
-            "username": "testuser",
-            "email": "testuser@example.com",
-            "password": "password123"
+            "username": username,
+            "email": email,
+            "password": password
         }
     )
+
+
+def login_user(
+    client,
+    username="testuser",
+    password="password123"
+):
+    response = client.post(
+        "/auth/token",
+        data={
+            "username": username,
+            "password": password
+        }
+    )
+
+    return response
+
+
+def test_register_user(client):
+
+    response = register_user(client)
 
     assert response.status_code == 201
 
@@ -21,49 +46,43 @@ def test_register_user(client):
 
 def test_duplicate_username(client):
 
-    user_data = {
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "password": "password123"
-    }
-
-    first_response = client.post(
-        "/auth/register",
-        json=user_data
-    )
+    first_response = register_user(client)
 
     assert first_response.status_code == 201
 
-    second_response = client.post(
-        "/auth/register",
-        json={
-            "username": "testuser",
-            "email": "another@example.com",
-            "password": "password123"
-        }
+    second_response = register_user(
+        client,
+        email="another@example.com"
     )
 
     assert second_response.status_code == 400
+    assert second_response.json()["detail"] == (
+        "Username already exists"
+    )
+
+
+def test_duplicate_email(client):
+
+    first_response = register_user(client)
+
+    assert first_response.status_code == 201
+
+    second_response = register_user(
+        client,
+        username="anotheruser"
+    )
+
+    assert second_response.status_code == 400
+    assert second_response.json()["detail"] == (
+        "Email already exists"
+    )
 
 
 def test_login(client):
 
-    client.post(
-        "/auth/register",
-        json={
-            "username": "testuser",
-            "email": "testuser@example.com",
-            "password": "password123"
-        }
-    )
+    register_user(client)
 
-    response = client.post(
-        "/auth/token",
-        data={
-            "username": "testuser",
-            "password": "password123"
-        }
-    )
+    response = login_user(client)
 
     assert response.status_code == 200
 
@@ -75,21 +94,21 @@ def test_login(client):
 
 def test_invalid_login(client):
 
-    client.post(
-        "/auth/register",
-        json={
-            "username": "testuser",
-            "email": "testuser@example.com",
-            "password": "password123"
-        }
+    register_user(client)
+
+    response = login_user(
+        client,
+        password="wrongpassword"
     )
 
-    response = client.post(
-        "/auth/token",
-        data={
-            "username": "testuser",
-            "password": "wrongpassword"
-        }
+    assert response.status_code == 401
+
+
+def test_login_nonexistent_user(client):
+
+    response = login_user(
+        client,
+        username="doesnotexist"
     )
 
     assert response.status_code == 401
@@ -106,26 +125,11 @@ def test_protected_route_requires_authentication(client):
 
 def test_protected_route_with_valid_token(client):
 
-    client.post(
-        "/auth/register",
-        json={
-            "username": "testuser",
-            "email": "testuser@example.com",
-            "password": "password123"
-        }
-    )
+    register_user(client)
 
-    login_response = client.post(
-        "/auth/token",
-        data={
-            "username": "testuser",
-            "password": "password123"
-        }
-    )
+    login_response = login_user(client)
 
-    token = login_response.json()[
-        "access_token"
-    ]
+    token = login_response.json()["access_token"]
 
     response = client.get(
         "/protected",
@@ -139,3 +143,28 @@ def test_protected_route_with_valid_token(client):
     data = response.json()
 
     assert data["username"] == "testuser"
+    assert data["user_id"] == 1
+
+
+def test_register_password_is_hashed(client, db):
+
+    register_user(client)
+
+    from app.models import User
+
+    user = db.query(User).filter(
+        User.username == "testuser"
+    ).first()
+
+    assert user is not None
+    assert user.hashed_password != "password123"
+
+
+def test_short_password_validation(client):
+
+    response = register_user(
+        client,
+        password="123"
+    )
+
+    assert response.status_code == 422
